@@ -1,0 +1,10 @@
+name: Workflow
+
+on: workflow_dispatch
+
+jobs:
+    dummy-job:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Gretting
+              run: echo "Hello, There"

@@ -36,6 +36,7 @@
 ### Workflow
 
 - A workflow is the top-level automation file.
+- A workflow = set of jobs triggered by events.
 - It defines when the automation should run and what jobs it should execute.
 - Workflows are triggered by `events` such as:
   - `push`
@@ -49,6 +50,7 @@
 - Each job usually specifies:
   - a runner like `ubuntu-latest`
   - a list of steps
+- Common runners `ubuntu-latest`, `windows-latest`, `macos-latest` or self-hosted
 
 ### Step
 
@@ -58,3 +60,27 @@
   - use a reusable action using `uses`
 - Steps in the same job run sequentially.
 - Steps in the same job can share files through the workspace.
+- Steps share workspace but not environment by default unless `env` is set.
+
+### Actions
+
+- Reusable units of logic.
+- Types:
+  - Docker actions — packaged in containers.
+  - JavaScript actions — fastest, native execution.
+  - Composite actions — combine multiple shell/steps.
+- Use public actions from GitHub Marketplace.
+
+## Basic & Useless Workflow
+
+```yaml
+name: First Worflow
+on: workflow_dispatch
+
+jobs:
+  first-job:
+    runner: ubunut-latest
+    steps:
+      - name: Greetings
+        runs: echo "Hello, There!"
+```
