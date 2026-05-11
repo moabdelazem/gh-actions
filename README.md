@@ -420,3 +420,136 @@ jobs:
 - `${{ ... }}` is the GitHub Actions expression syntax.
 - Contexts are evaluated by GitHub Actions before the shell runs the command.
 - Step outputs are accessed through the `steps` context.
+
+## Job Artifacts & Outputs
+
+- Jobs often need to pass results forward or preserve files after the run.
+- In GitHub Actions, `artifacts` and `outputs` solve different problems.
+
+### Artifacts
+
+- Artifacts are files or folders uploaded from a workflow run.
+- They are useful for things like:
+  - build packages
+  - test reports
+  - logs
+  - container images
+- Artifacts can be downloaded later from the workflow run page.
+- They are commonly uploaded with `actions/upload-artifact`.
+
+#### Artifact Example
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: mkdir dist && echo "app build" > dist/app.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: dist/
+```
+
+### Outputs
+
+- Outputs are small values exposed by a step or a job.
+- They are useful for passing data such as:
+  - a version number
+  - an image tag
+  - a generated URL
+- Outputs are not for large files.
+- Job outputs are often consumed by other jobs through `needs`.
+
+#### Job Output Example
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - id: meta
+        run: echo "version=1.0.0" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: echo "Deploying version ${{ needs.build.outputs.version }}"
+```
+
+### Dependency Caching
+
+- Dependency caching stores reusable files between workflow runs.
+- It is commonly used for package manager data such as:
+  - `npm`
+  - `pip`
+  - `pnpm`
+  - `maven`
+- Caching helps speed up workflows by avoiding repeated dependency downloads.
+- A cache is different from an artifact:
+  - caches are meant to speed up future runs
+  - artifacts are meant to keep files from the current run
+- Caching is commonly done with `actions/cache` or built-in caching options in setup actions.
+- Built-in caching is simpler when the setup action already supports your package manager.
+- `actions/cache` is more flexible when you want to cache custom paths directly.
+
+#### Cache Example
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+```
+
+#### `actions/cache` Example
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - run: npm ci
+      - run: npm test
+```
+
+### Notes About Caching
+
+- Use cache keys that change when dependency lock files change.
+- `actions/cache` usually needs:
+  - a `path` to cache
+  - a `key` that identifies the cache
+  - optional `restore-keys` for partial matches
+- Do not use caching for secrets or sensitive files.
+- Good caching can make CI much faster, but incorrect cache keys can cause stale dependencies.
+
+### Quick Difference
+
+- Use `artifacts` when you need to keep or download files.
+- Use `outputs` when you need to pass small values to later steps or jobs.
+- Use dependency `caching` when you want later workflow runs to reuse downloaded dependencies.
